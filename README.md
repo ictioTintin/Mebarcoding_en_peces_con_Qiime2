@@ -1,5 +1,8 @@
-# Mebarcoding_en_peces_con_Qiime2
+# Mebarcoding en peces con Qiime2
 
+_Martin Holguin Osorio_\
+junio de 2021\
+version 3_ 
 
 ###Script 3.0 de qiime2 
 #por: Martin Holguin Osorio
