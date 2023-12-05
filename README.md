@@ -5,43 +5,41 @@ _junio de 2021_\
 _Version 3_ 
 
 ## Creacion de archivo de metadatos y preparacion de espacio de trabajo
-El archivo "metadata.tsv" tiene que seguir un orden  y una organizacion especifica para funcionar corectamente, mas informacion en [tutorial metadata en Qiime2](https://docs.qiime2.org/2020.11/tutorials/metadata/) , se recomienda usar el add-on keemei de google sheets para crear el archivo de "metadata.tsv" de la manera mas rapida y sencilla, mas [info](https://keemei.qiime2.org).
+El archivo "metadata.tsv" tiene que seguir un orden  y una organizacion especifica para funcionar corectamente, mas informacion en [tutorial metadata en Qiime2](https://docs.qiime2.org/2020.11/tutorials/metadata/) , se recomienda usar el add-on keemei de google sheets para crear el archivo de "metadata.tsv" de la manera mas rapida y sencilla, mas [info aqui](https://keemei.qiime2.org).
 
-Tras descargar metadata.tsv usando google sheets
+* Tras descargar metadata.tsv usando google sheets:
 
 ```
-
 #abro qiime2 en una terminal
 conda activate qiime2-2021.8
 
-
-
 #navego y ubico el archivo de metadata en la direccion de la carpeta donde voy a trabajar(en mi caso /home/martin/eDNA/1 )
 cd /home/martin/eDNA/6/COI
+
 #tomo las lecturas de los datos crudos y los pongo dentro de esta nueva carpeta "datos"
 mkdir datos
+
 #creo una carpeta donde se ubicaran las salidas de cada proceso (resultados)
 mkdir salidas
+```
 
+## Importacion de datos
+Luego de ver la naturaleza de estos datos (demultiplexados, con secuenciacion pareada y con los barcodes en las secuencias), defino que tengo que usar otro comando para importar los datos, asi que, dejo los nombres de los datos crudos (dejandolos como estan, sin alterar nada) y los ubico en la carpeta "datos"
 
-
-#####################################################################################################################################################################################################################
-##################################### Importacion de datos ############################################################
-#luego de ver la naturaleza de estos datos (demultiplexados, con secuenciacion pareada y con los barcodes en las secuencias), defino que tengo que usar otro comando
-#para importar los datos, asi que, dejo los nombres de los datos crudos (dejandolos como estan, sin alterar nada) y los ubico en la carpeta "datos"
+```
 #importo los datos a qiime2
 qiime tools import \
   --type 'SampleData[PairedEndSequencesWithQuality]' \
   --input-path datos/ \
   --input-format CasavaOneEightSingleLanePerSampleDirFmt \
   --output-path salidas/secs_multiplexadas.qza
+```
 
+## Demultiplexacion
+Separo la informacion de cada muestra, contenida en los archivos fastq, usando los barcodes de referencia que hay para cada una, en el archivo "metadata.tsv" 
 
-
-#####################################################################################################################################################################################################################
-##################################### Demultiplexacion #################################
-#separo la informacion de cada muestra, contenida en los archivos fastq, usando los barcodes de referencia que hay
-#para cada una, en el archivo "metadata.tsv" 
+```
+#demultiplexo
 qiime cutadapt demux-paired \
   --i-seqs salidas/multiplexed-seqs.qza \
   --m-forward-barcodes-file metadata.tsv \
@@ -55,24 +53,16 @@ qiime cutadapt demux-paired \
 qiime demux summarize \
   --i-data salidas/secs_demultiplexadas.qza \
   --o-visualization salidas/secs_demultiplexadas.qzv
+
 #abro visualizador en el navegador
 qiime tools view salidas/secs_demultiplexadas.qzv
 #en el archivo "untrimmed.qza" quedan todas las secuencias sin asginar
+```
 
+## Eliminación de ruido (denoising con DADA2 )
+Este Plugin corrige múltiples artefactos producto de la amplificación y secuenciación, une las lecturas pareadas y corta los extremos de las lecturas con baja calidad, para al final interpretar y agrupar la diversidad de secuencias como ASVs (variantes de secuencias de amplicones) en lugar de OTUs (unidades taxonómicas operativas). La eliminación de ruido detecta secuencias erróneas y las fusiona con la secuencia "madre" correcta, interpretándola como ASV, mientras que su alternativa (el agrupamiento ó clustering) intenta combinar un conjunto de secuencias (sin importar si contienen o no errores) en entidades biológicas significativas, las cuales se interpretan como OTUs. Ambos métodos de tratamiento de las lecturas (secuencias) buscan asignar secuencias al nivel taxonómico de especie y han sido presentados como alternativas mutuamente excluyentes (Antich et al., 2021)
 
-
-
-#####################################################################################################################################################################################################################
-##################################### Eliminación de ruido (denoising con DADA2 ) #################################
-
-#etapa experimental; entre las lineas esta la zona de experimentos, se hizo de esta manera ya que se tenia que escoger la mejor ruta de analisis para mejorar y corregir varios detalles de la version anterior del pipeline
--------------------------------------------------------------------------------------------------------------------------------------------------------------------
-###hago 4 rutas de denoising:
-#la primera es el denoising hecho en la version 2.0 de este pipeline, el cual es un denoising "novato" hecho en base a lo aprendido en los primeros tutoriales que hize, en su mayoria eran para microorganismos
-#la segunda es el mismo denoising novato pero podando (timando antes del denoising) la pareja de primers "300enV" de los extremos de las secuencias
-#la tercera es el denoising con los parametros del trabajo de Mathon podando tambien la pareja de primers "300enV" de los extremos de las secuencias y ademas,hago una variacion con un ordenamiento en OTUs
-#la cuarta es el denoising con los parametros del trabajo de Mathon y tambien,hago una variacion con un ordenamiento en OTUs
-
+```
 #hago denoising escojiendo las posiciones de trimero a ojo
 qiime dada2 denoise-paired \
   --i-demultiplexed-seqs salidas/secs_demultiplexadas.qza \
@@ -89,194 +79,22 @@ qiime feature-table summarize \
 --i-table salidas/tabla.qza \
 --o-visualization salidas/tabla.qzv \
 --m-sample-metadata-file metadata.tsv
+
 #resumen de denoising
 qiime metadata tabulate \
 --m-input-file salidas/resumen_denoising.qza \
 --o-visualization salidas/resumen_denoising.qzv
+
 #secuencias representativas
 qiime feature-table tabulate-seqs \
 --i-data salidas/secs_representativas.qza \
 --o-visualization salidas/secs_representativas.qzv
+
 #visualizo
 qiime tools view salidas/tabla.qzv
+```
 
-
-
-############################################################################################################################################################
-##################################### trimeo(motilada) de datos ############################################################
-#trimo usando los primers de la corrida como guia (FISHF2 nuestros primers de COI para la cuenca Magdalena-Cauca)
-qiime cutadapt trim-paired \
---i-demultiplexed-sequences salidas/secs_demultiplexadas.qza \
---p-adapter-f "TTGCYGGAAACCTAGCMCACG" \
---p-adapter-r "TAGACTTCTGGGTGGCCAAAGAATCA" \
---o-trimmed-sequences salidas/secs_trimadas_demultiplex.qza 
-
-#creo resumen de trimeo y visualizo en el archivo
-qiime demux summarize \
-  --i-data salidas/secs_trimadas_demultiplex.qza \
-  --o-visualization salidas/secs_trimadas_demultiplex.qzv
-#creo resumen de trimeo y visualizo en el navegador
-qiime tools view salidas/secs_trimadas_demultiplex.qzv
-
-#hago denoising escojiendo las posiciones de trimero a ojo
-qiime dada2 denoise-paired \
-  --i-demultiplexed-seqs salidas/secs_trimadas_demultiplex.qza \
-  --p-trim-left-f 0 \
-  --p-trim-left-r 3 \
-  --p-trunc-len-f 222 \
-  --p-trunc-len-r 201 \
-  --o-table salidas/tabla2.qza \
-  --o-representative-sequences salidas/secs_representativas2.qza \
-  --o-denoising-stats salidas/resumen_denoising2.qza
-
-#genero visualizacion del archivo "table.qzv", el cual brinda informacion cuantitativa de las secuencias significativas
-qiime feature-table summarize \
---i-table salidas/tabla2.qza \
---o-visualization salidas/tabla2.qzv \
---m-sample-metadata-file metadata.tsv
-#resumen de denoising
-qiime metadata tabulate \
---m-input-file salidas/resumen_denoising2.qza \
---o-visualization salidas/resumen_denoising2.qzv
-#secuencias representativas
-qiime feature-table tabulate-seqs \
---i-data salidas/secs_representativas2.qza \
---o-visualization salidas/secs_representativas2.qzv
-#visualizo
-qiime tools view salidas/tabla2.qzv
-
-
-
-##################################################################################################################
-################################################ Clustering y denoisin (ASVs y OTUs) #################################
-
-#hago denoising con los parametros del trabajo de Mathon en las secuencias motiladas o trimadas
-qiime dada2 denoise-paired \
-  --i-demultiplexed-seqs salidas/secs_trimadas_demultiplex.qza \
-  --p-trim-left-f 0 \
-  --p-trim-left-r 0 \
-  --p-trunc-len-f 0 \
-  --p-trunc-len-r 0 \
-  --p-max-ee-f 2 \
-  --p-max-ee-r 2 \
-  --p-trunc-q 2 \
-  --p-chimera-method none \
-  --o-table salidas/tabla3.qza \
-  --o-representative-sequences salidas/secs_representativas3.qza \
-  --o-denoising-stats salidas/resumen_denoising3.qza
-  
-#genero visualizacion del archivo "table.qzv", el cual brinda informacion cuantitativa de las secuencias significativas
-qiime feature-table summarize \
---i-table salidas/tabla3.qza \
---o-visualization salidas/tabla3.qzv \
---m-sample-metadata-file metadata.tsv
-#resumen de denoising
-qiime metadata tabulate \
---m-input-file salidas/resumen_denoising3.qza \
---o-visualization salidas/resumen_denoising3.qzv
-#secuencias representativas
-qiime feature-table tabulate-seqs \
---i-data salidas/secs_representativas3.qza \
---o-visualization salidas/secs_representativas3.qzv
-#visualizo
-qiime tools view salidas/tabla3.qzv
-
-
-#llamo al ordenamiento en OTUs sobre el hecho en ASVs previamente
-#como la ultima version de qiime2 no me funciona con el plugin "dbotu-q2" , abro otra consola y uso la version previa que tengo la 2019.10
-conda deactivate
-source activate qiime2-2019.10
-
-qiime dbotu-q2 call-otus \
---i-table salidas/tabla3.qza \
---i-sequences salidas/secs_representativas3.qza \
---p-gen-crit 0.1  \
---p-abund-crit 0 \
---p-pval-crit 0.005 \
---o-dbotu-table salidas/tabla3_OTUs.qza \
---o-representative-sequences salidas/secs_representativas3_OTUs.qza
-
-#genero visualizacion del archivo "table.qzv", el cual brinda informacion cuantitativa de las secuencias significativas
-qiime feature-table summarize \
---i-table salidas/tabla3_OTUs.qza \
---o-visualization salidas/tabla3_OTUs.qzv \
---m-sample-metadata-file metadata.tsv
-
-#secuencias representativas
-qiime feature-table tabulate-seqs \
---i-data salidas/secs_representativas3_OTUs.qza \
---o-visualization salidas/secs_representativas3_OTUs.qzv
-#visualizo
-qiime tools view salidas/tabla3_OTUs.qzv
-
-
-
-#hago denoising con los parametros del trabajo de Mathon
-qiime dada2 denoise-paired \
-  --i-demultiplexed-seqs salidas/secs_demultiplexadas.qza \
-  --p-trim-left-f 0 \
-  --p-trim-left-r 0 \
-  --p-trunc-len-f 0 \
-  --p-trunc-len-r 0 \
-  --p-max-ee-f 2 \
-  --p-max-ee-r 2 \
-  --p-trunc-q 2 \
-  --p-chimera-method none \
-  --o-table salidas/tabla4.qza \
-  --o-representative-sequences salidas/secs_representativas4.qza \
-  --o-denoising-stats salidas/resumen_denoising4.qza
-  
-#genero visualizacion del archivo "table.qzv", el cual brinda informacion cuantitativa de las secuencias significativas
-qiime feature-table summarize \
---i-table salidas/tabla4.qza \
---o-visualization salidas/tabla4.qzv \
---m-sample-metadata-file metadata.tsv
-#resumen de denoising
-qiime metadata tabulate \
---m-input-file salidas/resumen_denoising4.qza \
---o-visualization salidas/resumen_denoising4.qzv
-#secuencias representativas
-qiime feature-table tabulate-seqs \
---i-data salidas/secs_representativas4.qza \
---o-visualization salidas/secs_representativas4.qzv
-#visualizo
-qiime tools view salidas/tabla4.qzv
-
-#llamo al ordenamiento en OTUs sobre el hecho en ASVs previamente
-#como la ultima version de qiime2 no me funciona con el plugin "dbotu-q2" , abro otra consola y uso la version previa que tengo la 2019.10
-conda deactivate
-source activate qiime2-2019.10
-
-qiime dbotu-q2 call-otus \
---i-table salidas/tabla4.qza \
---i-sequences salidas/secs_representativas4.qza \
---p-gen-crit 0.1  \
---p-abund-crit 0 \
---p-pval-crit 0.005 \
---o-dbotu-table salidas/tabla4_OTUs.qza \
---o-representative-sequences salidas/secs_representativas4_OTUs.qza
-
-#genero visualizacion del archivo "table.qzv", el cual brinda informacion cuantitativa de las secuencias significativas
-qiime feature-table summarize \
---i-table salidas/tabla4_OTUs.qza \
---o-visualization salidas/tabla4_OTUs.qzv \
---m-sample-metadata-file metadata.tsv
-
-#secuencias representativas
-qiime feature-table tabulate-seqs \
---i-data salidas/secs_representativas4_OTUs.qza \
---o-visualization salidas/secs_representativas4_OTUs.qzv
-#visualizo
-qiime tools view salidas/tabla4_OTUs.qzv
-
------------------------------------------------------------------------------------------------------------------------------------------------------------
-#Escojo la primera ruta de denoising, con los parametros del trabajo de la version 2.0 de este pipeline, ya que  aunque no sea la que rescata mas diversidad (ASVs, "NOTA: es la 3"),
-#es la que genera secuencias asignadas a 2 spp de referencia
-
-
-
-##########################################################################################################################################################################################################################
-##################################### asignacion taxonomía #################################
+## asignacion taxonomica 
 
 #etapa experimental; entre las lineas esta la zona de experimentos, se hizo de esta manera ya que se tenia que escoger la mejor ruta de asignacion para mejorar y corregir varios detalles de la version anterior del pipeline
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
