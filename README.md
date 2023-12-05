@@ -5,16 +5,16 @@ _junio de 2021_\
 _Version 3_ 
 
 ## Creacion de archivo de metadatos y preparacion de espacio de trabajo
+el archivo "metadata.tsv" tiene que seguir un orden  y una organizacion especifica para funcionar corectamente, mas informacion en [tutorial metadata en Qiime2] ("https://docs.qiime2.org/2020.11/tutorials/metadata/"), se recomienda usar el add-on keemei de google sheets para crear el archivo de "metadata.tsv" de la manera mas rapida y sencilla, mas [info] (https://keemei.qiime2.org)
+
 
 ```
+
 #abro qiime2
 conda activate qiime2-2021.8
 
 
-#el archivo "metadata.tsv" tiene que seguir un orden  y una organizacion especifica para funcionar corectamente, mas informacion en 
-#("https://docs.qiime2.org/2020.11/tutorials/metadata/"), se recomienda usar el add-on keemei de google sheets para crear el archivo 
-#de "metadata.tsv" de la manera mas rapida y sencilla, mas info en "https://keemei.qiime2.org/"
-#tras descargar metadata.tsv usando google sheets
+
 #navego y ubico el archivo de metadata en la direccion de la carpeta donde voy a trabajar(en mi caso /home/martin/eDNA/1 )
 cd /home/martin/eDNA/6/COI
 #tomo las lecturas de los datos crudos y los pongo dentro de esta nueva carpeta "datos"
