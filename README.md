@@ -1,4 +1,4 @@
-# Mebarcoding en peces con Qiime2
+# Metabarcoding en peces con Qiime2
 
 _Martin Holguin Osorio_\
 _junio de 2021_\
